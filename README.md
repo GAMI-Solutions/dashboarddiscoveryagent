@@ -1,78 +1,88 @@
-# Dashboard Discovery Agent 🔎
+# Insight Discovery MCP Server 🔬
 
-**Finds what your dashboard isn't telling you.**
+**Connects Claude to the data beneath your dashboards.**
 
-Dashboards show what someone *chose* to chart. The insights that matter are the unknown unknowns — a segment quietly declining under a healthy top line, an average hiding a bimodal split, a truncated axis manufacturing drama. Dashboard Discovery Agent gives Claude a rigorous, five-phase analyst methodology to hunt them down from a simple screenshot of **any** BI tool: Tableau, Power BI, Looker, Metabase, Grafana, Excel, or your homegrown dashboard.
+Companion to the [Dashboard Discovery Agent](https://github.com/GAMI-Solutions/dashboarddiscoveryagent) plugin. The plugin analyzes dashboard *screenshots*; this MCP server queries the data *underneath* (Metabase first) and runs a statistical scan battery to surface unknown unknowns — the segment quietly declining under a healthy top line, the level shift a smoothed chart hides, the whale value moving your average.
 
-## What it does
+## Tools
 
-Drop in a dashboard screenshot and ask Claude to review it. You get:
+| Tool | What it does |
+|------|--------------|
+| `list_dashboards` | Enumerate dashboards (and, with `dashboard_id`, their cards) |
+| `get_underlying_data` | Pull the raw rows behind a card (capped at 200 rows) |
+| `scan_for_unknowns` | Statistical battery over a card or a whole dashboard: robust (MAD) outliers, trend-break detection, weekday-seasonality deviations, segment divergence beneath aggregates, concentration risk, data-quality tripwires (nulls, staleness, empty results) |
+| `explain_finding` | Retrieve a finding's full evidence slice + a root-cause analysis brief for Claude to narrate in plain language |
 
-- **Integrity findings** — truncated axes, dual-axis tricks, cherry-picked time windows, partial-period comparisons, arithmetic inconsistencies, each rated Critical / Warning / Note
-- **Masking analysis** — the specific alternative realities your aggregates can't rule out ("this 8% average uplift is consistent with one whale deal masking a decline in typical deal size")
-- **Blind-spot report** — the counter-metrics, segments, baselines, and denominators your dashboard is missing, ranked
-- **Copy-paste follow-ups** — concrete questions and queries to hand your data team
+Design principle (shared with the plugin): **be specific or be silent.** Every finding carries evidence, a severity (critical / warning / note), and a concrete follow-up. Findings are framed as "worth investigating", never verdicts.
 
-## Install
+## Setup
 
-From Claude Code:
+Requirements: Node 18+, a Metabase instance, and a Metabase API key (Admin → Settings → Authentication → API Keys).
 
-```
-/plugin marketplace add GAMI-Solutions/dashboarddiscoveryagent
-/plugin install dashboarddiscoveryagent@dashboarddiscoveryagent-marketplace
-```
-
-## Use
-
-1. Paste or attach a screenshot of any dashboard.
-2. Ask anything like:
-   - "Review this dashboard"
-   - "What is this dashboard not telling me?"
-   - "Is anything misleading in these charts?"
-   - "Find insights I might be missing"
-3. For a deep audit of one or several dashboards, the bundled **dashboarddiscoveryagent** subagent runs the full methodology end to end and can cross-check multiple dashboards for inconsistencies.
-
-## What's inside
-
-```
-dashboarddiscoveryagent/
-├── .claude-plugin/
-│   ├── plugin.json                    # plugin manifest
-│   └── marketplace.json               # makes this repo directly installable as a marketplace
-├── skills/
-│   └── dashboard-detective/
-│       └── SKILL.md                   # the methodology (the "brain")
-├── agents/
-│   └── dashboarddiscoveryagent.md     # deep-analysis subagent
-├── README.md
-└── LICENSE
+```bash
+npm install
+npm run build
 ```
 
-## Methodology (short version)
+### Local (Claude Desktop / Claude Code)
 
-1. **Inventory** — extract every chart, KPI, filter, and freshness cue; never guess unreadable values
-2. **Integrity checks** — is the dashboard lying? Axis, time-window, chart-type, and arithmetic checks
-3. **Aggregation masking** — what could hide beneath each average, total, and rate
-4. **Blind-spot hunt** — what a skeptical analyst in this domain would expect to see and doesn't
-5. **Trend & anomaly cues** — breaks, suspicious smoothness, seasonality deviations, flatlines, stale data
+Add to your MCP config (Claude Desktop: `claude_desktop_config.json`; Claude Code: `claude mcp add`):
 
-Design principle: **be specific or be silent.** Every finding cites the exact chart or value; hypotheses are never presented as facts; two strong findings beat ten weak ones.
+```json
+{
+  "mcpServers": {
+    "insight-discovery": {
+      "command": "node",
+      "args": ["/absolute/path/to/insight-discovery-mcp/dist/index.js"],
+      "env": {
+        "METABASE_URL": "https://your-metabase.example.com",
+        "METABASE_API_KEY": "mb_..."
+      }
+    }
+  }
+}
+```
 
-## Limitations
+### Remote (Streamable HTTP)
 
-- Vision-based: it analyzes what's on screen. It cannot query the data beneath the dashboard — that's the job of the companion **Insight Discovery MCP server** (Metabase first; Looker and Power BI on the roadmap).
-- Low-resolution screenshots reduce accuracy; the skill will tell you when values are unreadable rather than guess.
+```bash
+METABASE_URL=https://your-metabase.example.com \
+METABASE_API_KEY=mb_... \
+MCP_AUTH_TOKEN=some-long-random-string \
+npm run start:http
+```
+
+Endpoint: `POST /mcp` (stateless). Health check: `GET /healthz`. If `MCP_AUTH_TOKEN` is set, requests must send `Authorization: Bearer <token>`. See [DEPLOYMENT.md](DEPLOYMENT.md) for hosting and the Claude Connectors Directory path (which requires OAuth 2.0).
+
+## Try it
+
+With sample data (Metabase ships with the Sample Database):
+
+> "List my dashboards, then scan the sales dashboard for unknowns and explain the most severe finding."
+
+## Testing
+
+```bash
+npm test
+```
+
+13 tests: unit tests for every scanner (planted anomalies must be found; clean data must stay silent) plus an end-to-end suite that exercises all four tools through a real MCP client against a mocked Metabase API.
 
 ## Roadmap
 
-- [x] v1.0 — vision-based methodology, any dashboard screenshot
-- [ ] Insight Discovery MCP server (Metabase) — query underlying data, statistical anomaly scans
+- [x] v0.1 — Metabase, API-key auth, stdio + Streamable HTTP, scan battery
+- [ ] OAuth 2.0 (Claude Connectors Directory requirement)
+- [ ] Cloudflare Workers deployment
 - [ ] Looker & Power BI connectors
-- [ ] Scheduled dashboard monitoring
+- [ ] Scheduled scans / alerting
 
-## Author
+## Privacy & data handling
 
-Gami Solutions — muthu@gami-solutions.com
+The server is a stateless proxy: it queries your Metabase with your API key, computes statistics in memory, and returns findings to the MCP client. No rows are persisted; the in-memory finding cache lives only for the process lifetime. See [PRIVACY.md](PRIVACY.md).
+
+## Author & support
+
+Gami Solutions — <muthu@gami-solutions.com>
 
 ## License
 
