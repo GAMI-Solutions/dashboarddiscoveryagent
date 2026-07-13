@@ -1,17 +1,24 @@
 {
   "name": "dashboarddiscoveryagent",
-  "description": "Skeptical senior-analyst subagent for BI dashboard screenshots. Runs the Dashboard Detective methodology (integrity checks, aggregation-masking, blind-spot hunts, trend/anomaly cues) and returns a structured findings report.",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Finds what your dashboard isn't telling you. A five-phase analyst methodology for auditing any BI dashboard screenshot (Tableau, Power BI, Looker, Metabase, Grafana, Excel) for masked segments, misleading aggregates, axis tricks, and blind spots.",
   "author": {
-    "name": "Gami Solutions",
-    "email": "muthu@gami-solutions.com"
+    "name": "GAMI Solutions",
+    "email": "muthu@gami-solutions.com",
+    "url": "https://github.com/GAMI-Solutions"
   },
   "homepage": "https://github.com/GAMI-Solutions/dashboarddiscoveryagent",
+  "repository": "https://github.com/GAMI-Solutions/dashboarddiscoveryagent",
+  "license": "MIT",
   "keywords": [
     "dashboard",
     "analytics",
+    "business-intelligence",
     "data-analysis",
-    "anomaly-detection",
-    "bi"
+    "insights",
+    "tableau",
+    "power-bi",
+    "metabase",
+    "grafana"
   ]
 }
