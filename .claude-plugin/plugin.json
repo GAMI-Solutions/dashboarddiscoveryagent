@@ -1,0 +1,24 @@
+{
+  "name": "dashboarddiscoveryagent",
+  "version": "1.0.0",
+  "description": "Finds what your dashboard isn't telling you. A five-phase analyst methodology for auditing any BI dashboard screenshot (Tableau, Power BI, Looker, Metabase, Grafana, Excel) for masked segments, misleading aggregates, axis tricks, and blind spots.",
+  "author": {
+    "name": "GAMI Solutions",
+    "email": "muthu@gami-solutions.com",
+    "url": "https://github.com/GAMI-Solutions"
+  },
+  "homepage": "https://github.com/GAMI-Solutions/dashboarddiscoveryagent",
+  "repository": "https://github.com/GAMI-Solutions/dashboarddiscoveryagent",
+  "license": "MIT",
+  "keywords": [
+    "dashboard",
+    "analytics",
+    "business-intelligence",
+    "data-analysis",
+    "insights",
+    "tableau",
+    "power-bi",
+    "metabase",
+    "grafana"
+  ]
+}

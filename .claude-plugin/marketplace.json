@@ -1,0 +1,25 @@
+{
+  "name": "dashboarddiscoveryagent-marketplace",
+  "owner": {
+    "name": "GAMI Solutions",
+    "email": "muthu@gami-solutions.com",
+    "url": "https://github.com/GAMI-Solutions"
+  },
+  "metadata": {
+    "description": "GAMI Solutions plugins for analytics and data intelligence",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "dashboarddiscoveryagent",
+      "source": "./",
+      "description": "Finds what your dashboard isn't telling you — audits any BI dashboard screenshot for masked segments, misleading aggregates, axis tricks, and blind spots.",
+      "version": "1.0.0",
+      "author": {
+        "name": "GAMI Solutions"
+      },
+      "license": "MIT",
+      "keywords": ["dashboard", "analytics", "business-intelligence", "insights"]
+    }
+  ]
+}
