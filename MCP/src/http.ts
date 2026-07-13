@@ -24,11 +24,37 @@ app.use(express.json({ limit: "4mb" }));
 
 const AUTH_TOKEN = process.env.MCP_AUTH_TOKEN;
 
+/**
+ * Origin-header validation (DNS-rebinding protection; also on Anthropic's
+ * directory review checklist). Browsers send Origin; non-browser MCP clients
+ * usually don't. Requests with no Origin pass; requests with an Origin must
+ * match MCP_ALLOWED_ORIGINS (comma-separated, e.g. "https://claude.ai").
+ */
+const ALLOWED_ORIGINS = new Set(
+  (process.env.MCP_ALLOWED_ORIGINS ?? "https://claude.ai,https://claude.com")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
+
+function originAllowed(origin: string | undefined): boolean {
+  if (!origin) return true;
+  return ALLOWED_ORIGINS.has(origin);
+}
+
 app.get("/healthz", (_req, res) => {
   res.json({ ok: true, server: "insight-discovery", version: "0.1.0" });
 });
 
 app.post("/mcp", async (req, res) => {
+  if (!originAllowed(req.headers.origin)) {
+    res.status(403).json({
+      jsonrpc: "2.0",
+      error: { code: -32003, message: "Origin not allowed" },
+      id: null,
+    });
+    return;
+  }
   if (AUTH_TOKEN) {
     const header = req.headers.authorization ?? "";
     if (header !== `Bearer ${AUTH_TOKEN}`) {

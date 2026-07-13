@@ -24,15 +24,23 @@ Connect from claude.ai / Claude Desktop as a **custom connector**: URL `https://
 
 ## 3. Claude Connectors Directory submission (Phase 4)
 
-Requirements evolve — re-verify at [docs.claude.com](https://docs.claude.com) and [support.claude.com](https://support.claude.com) before submitting. As of the roadmap:
+**Verified July 13, 2026** against https://claude.com/docs/connectors/building/submission — re-check before submitting, they evolve.
 
-- ✅ Remote MCP server over Streamable HTTP (this repo)
-- ⚠️ **OAuth 2.0 required** — the current bearer-token mode is not sufficient for the directory. Upgrade path: implement the MCP authorization spec (OAuth 2.1 with PKCE + dynamic client registration). The Cloudflare Workers OAuth Provider template handles most of this plumbing.
-- ✅ Privacy policy (`PRIVACY.md` — also host it at a public URL)
-- ✅ Support contact (muthu@gami-solutions.com)
-- Reliability pass: timeouts (30s Metabase timeout built in), row caps (200), per-dashboard card caps (8), clean error surfacing — all implemented; add rate limiting at the host/proxy level.
+Two accepted paths:
 
-Common rejection reasons to pre-empt: thin wrappers (this server adds a statistical analysis layer, emphasize it in listing copy), flaky servers (load-test before submitting), abandoned projects (keep commits flowing).
+**Path A — Desktop extension (MCPB), no hosting/OAuth needed.** Package the stdio server as an [MCP Bundle](https://github.com/modelcontextprotocol/mcpb); users enter their Metabase URL/API key via manifest user-config. Requirements: privacy policy section in README + `privacy_policies` HTTPS URLs in `manifest.json` (manifest_version 0.2+). Submission form: https://clau.de/desktop-extention-submission. **Fastest route to a listing.**
+
+**Path B — Remote MCP server.** Requirements:
+
+- OAuth 2.0 for authenticated services — bearer-token mode will not pass. This is an architectural change (per-user Metabase credentials captured in the auth flow, per-session client routing): see **MULTITENANT-DESIGN.md**.
+- Tool annotations: every tool needs `title` + `readOnlyHint`/`destructiveHint` — ✅ done in this repo (all four tools are read-only).
+- HTTPS + `Origin`-header validation — ✅ implemented in `src/http.ts` (`MCP_ALLOWED_ORIGINS`).
+- Public documentation link, privacy policy URL, support channel — host PRIVACY.md at a public URL (GitHub Pages or gami-solutions.com).
+- Test account with step-by-step reviewer setup instructions (a demo Metabase with the Sample Database).
+- Pre-submission checklist: https://claude.com/docs/connectors/building/review-criteria
+- Submission form: https://clau.de/mcp-directory-submission
+
+Common rejection reasons to pre-empt: thin wrappers (emphasize the statistical analysis layer in listing copy), flaky servers (load-test first), abandoned projects (keep commits flowing), missing/incomplete privacy policy (immediate rejection).
 
 ## 4. Suggested demo script
 

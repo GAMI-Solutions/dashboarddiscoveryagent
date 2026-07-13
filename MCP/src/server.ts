@@ -15,8 +15,47 @@ import { runScanBattery, type Finding } from "./stats.js";
 const MAX_ROWS_RETURNED = 200;
 const MAX_CARDS_PER_DASHBOARD_SCAN = 8;
 
-/** In-memory finding store so explain_finding can retrieve evidence. */
-const findingStore = new Map<string, Finding>();
+/**
+ * In-memory finding store so explain_finding can retrieve evidence across
+ * requests (in stateless HTTP mode each request gets a fresh McpServer, so
+ * this deliberately lives at module scope).
+ *
+ * Safety properties:
+ *  - IDs are crypto-random (see nextFindingId), so entries can't be enumerated.
+ *  - Entries expire after FINDING_TTL_MS and the store is capped (FIFO).
+ *  - The store evaporates on process restart and is per-instance behind a
+ *    load balancer — acceptable for single-tenant use and documented.
+ *
+ * Multi-tenant note: for a Connectors Directory deployment, replace this with
+ * session-scoped state (e.g. Durable Object storage keyed by the OAuth grant)
+ * so findings are partitioned per user — see MULTITENANT-DESIGN.md.
+ */
+const FINDING_TTL_MS = 60 * 60 * 1000; // 1 hour
+const FINDING_STORE_MAX = 1000;
+const findingStore = new Map<string, { finding: Finding; expiresAt: number }>();
+
+function storeFinding(f: Finding): void {
+  const now = Date.now();
+  for (const [id, entry] of findingStore) {
+    if (entry.expiresAt < now) findingStore.delete(id);
+  }
+  while (findingStore.size >= FINDING_STORE_MAX) {
+    const oldest = findingStore.keys().next().value;
+    if (oldest === undefined) break;
+    findingStore.delete(oldest);
+  }
+  findingStore.set(f.id, { finding: f, expiresAt: now + FINDING_TTL_MS });
+}
+
+function getFinding(id: string): Finding | undefined {
+  const entry = findingStore.get(id);
+  if (!entry) return undefined;
+  if (entry.expiresAt < Date.now()) {
+    findingStore.delete(id);
+    return undefined;
+  }
+  return entry.finding;
+}
 
 function text(s: string) {
   return { content: [{ type: "text" as const, text: s }] };
@@ -56,6 +95,7 @@ export function createServer(getClient: () => MetabaseClient): McpServer {
     "list_dashboards",
     {
       title: "List Metabase dashboards",
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description:
         "List dashboards in the connected Metabase instance (id, name, description, collection). Optionally filter by a search term. Pass a dashboard_id to get its cards instead.",
       inputSchema: {
@@ -90,6 +130,7 @@ export function createServer(getClient: () => MetabaseClient): McpServer {
     "get_underlying_data",
     {
       title: "Get a card's underlying data",
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description:
         `Run a Metabase card (saved question) and return its raw rows as JSON (capped at ${MAX_ROWS_RETURNED} rows, with column profile). Use list_dashboards with a dashboard_id first to find card IDs.`,
       inputSchema: {
@@ -136,6 +177,7 @@ export function createServer(getClient: () => MetabaseClient): McpServer {
     "scan_for_unknowns",
     {
       title: "Scan for unknown unknowns",
+      annotations: { readOnlyHint: true, openWorldHint: true },
       description:
         "Run the statistical scan battery over a card's underlying data (or every card on a dashboard): robust outliers, trend breaks, weekday-seasonality deviations, segment divergence beneath aggregates, concentration risk, and data-quality tripwires. Returns findings with severity, evidence, and finding IDs for explain_finding. Provide exactly one of card_id or dashboard_id.",
       inputSchema: {
@@ -179,7 +221,7 @@ export function createServer(getClient: () => MetabaseClient): McpServer {
               cardId: t.id,
               cardName: t.name,
             }));
-            for (const f of findings) findingStore.set(f.id, f);
+            for (const f of findings) storeFinding(f);
             allFindings.push(...findings);
           } catch (err) {
             failures.push(`Card ${t.id} ("${t.name}"): ${err instanceof Error ? err.message : err}`);
@@ -200,18 +242,19 @@ export function createServer(getClient: () => MetabaseClient): McpServer {
     "explain_finding",
     {
       title: "Explain a finding",
+      annotations: { readOnlyHint: true, openWorldHint: false },
       description:
-        "Retrieve a finding's full evidence (including the backing data slice) plus a root-cause analysis brief, so Claude can narrate a plain-language explanation of what happened and why it matters. Use a finding ID returned by scan_for_unknowns (e.g. F-003).",
+        "Retrieve a finding's full evidence (including the backing data slice) plus a root-cause analysis brief, so Claude can narrate a plain-language explanation of what happened and why it matters. Use a finding ID returned by scan_for_unknowns; IDs are valid for 1 hour.",
       inputSchema: {
-        finding_id: z.string().describe("Finding ID from scan_for_unknowns, e.g. F-003"),
+        finding_id: z.string().describe("Finding ID from scan_for_unknowns, e.g. F-a1b2c3d4e5"),
       },
     },
     async ({ finding_id }) => {
-      const f = findingStore.get(finding_id.trim());
+      const f = getFinding(finding_id.trim());
       if (!f) {
         return errorText(
           new Error(
-            `Unknown finding ID "${finding_id}". Run scan_for_unknowns first; finding IDs are only valid for this server session.`,
+            `Unknown or expired finding ID "${finding_id}". Finding IDs are valid for 1 hour on the server instance that produced them. Re-run scan_for_unknowns to get fresh IDs.`,
           ),
         );
       }

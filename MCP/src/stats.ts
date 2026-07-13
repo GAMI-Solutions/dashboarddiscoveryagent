@@ -6,6 +6,7 @@
  * "worth investigating", never verdicts.
  */
 
+import { randomBytes } from "node:crypto";
 import type { Row } from "./metabase.js";
 
 export type Severity = "critical" | "warning" | "note";
@@ -35,10 +36,13 @@ export interface ColumnProfile {
   distinct: number;
 }
 
-let findingCounter = 0;
+/**
+ * Finding IDs are crypto-random (not sequential) so they cannot be guessed
+ * or enumerated. In any deployment serving more than one user, this prevents
+ * one caller retrieving another caller's evidence slice via explain_finding.
+ */
 export function nextFindingId(): string {
-  findingCounter += 1;
-  return `F-${String(findingCounter).padStart(3, "0")}`;
+  return `F-${randomBytes(5).toString("hex")}`;
 }
 
 /* ---------------------------------- helpers --------------------------------- */

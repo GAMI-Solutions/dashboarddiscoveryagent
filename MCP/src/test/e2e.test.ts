@@ -136,7 +136,7 @@ test("scan_for_unknowns (dashboard) finds the planted EU decline, explain_findin
   assert.match(out, /finding/i);
   assert.match(out, /EU/);
 
-  const idMatch = out.match(/F-\d{3}/);
+  const idMatch = out.match(/F-[0-9a-f]{10}/);
   assert.ok(idMatch, "expected a finding ID in output");
   const explain = await client.callTool({
     name: "explain_finding",
@@ -145,6 +145,15 @@ test("scan_for_unknowns (dashboard) finds the planted EU decline, explain_findin
   const brief = JSON.parse(firstText(explain));
   assert.equal(brief.finding.id, idMatch![0]);
   assert.ok(brief.analysisBrief.length > 100);
+});
+
+test("explain_finding rejects unknown/guessed IDs", async () => {
+  const res = await client.callTool({
+    name: "explain_finding",
+    arguments: { finding_id: "F-0000000001" },
+  });
+  assert.equal((res as { isError?: boolean }).isError, true);
+  assert.match(firstText(res), /Unknown or expired/);
 });
 
 test("scan_for_unknowns validates arguments", async () => {
