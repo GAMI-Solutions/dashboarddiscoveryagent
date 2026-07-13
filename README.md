@@ -1,8 +1,8 @@
-# Dashboard Detective 🔎
+# Dashboard Discovery Agent 🔎
 
 **Finds what your dashboard isn't telling you.**
 
-Dashboards show what someone *chose* to chart. The insights that matter are the unknown unknowns — a segment quietly declining under a healthy top line, an average hiding a bimodal split, a truncated axis manufacturing drama. Dashboard Detective gives Claude a rigorous, five-phase analyst methodology to hunt them down from a simple screenshot of **any** BI tool: Tableau, Power BI, Looker, Metabase, Grafana, Excel, or your homegrown dashboard.
+Dashboards show what someone *chose* to chart. The insights that matter are the unknown unknowns — a segment quietly declining under a healthy top line, an average hiding a bimodal split, a truncated axis manufacturing drama. Dashboard Discovery Agent gives Claude a rigorous, five-phase analyst methodology to hunt them down from a simple screenshot of **any** BI tool: Tableau, Power BI, Looker, Metabase, Grafana, Excel, or your homegrown dashboard.
 
 ## What it does
 
@@ -18,8 +18,8 @@ Drop in a dashboard screenshot and ask Claude to review it. You get:
 From Claude Code:
 
 ```
-/plugin marketplace add YOUR_GITHUB_USERNAME/dashboard-detective
-/plugin install dashboard-detective@dashboard-detective-marketplace
+/plugin marketplace add GAMI-Solutions/dashboarddiscoveryagent
+/plugin install dashboarddiscoveryagent@dashboarddiscoveryagent-marketplace
 ```
 
 ## Use
@@ -30,20 +30,20 @@ From Claude Code:
    - "What is this dashboard not telling me?"
    - "Is anything misleading in these charts?"
    - "Find insights I might be missing"
-3. For a deep audit of one or several dashboards, the bundled **dashboard-analyst** subagent runs the full methodology end to end and can cross-check multiple dashboards for inconsistencies.
+3. For a deep audit of one or several dashboards, the bundled **dashboarddiscoveryagent** subagent runs the full methodology end to end and can cross-check multiple dashboards for inconsistencies.
 
 ## What's inside
 
 ```
-dashboard-detective/
+dashboarddiscoveryagent/
 ├── .claude-plugin/
-│   ├── plugin.json          # plugin manifest
-│   └── marketplace.json     # makes this repo directly installable as a marketplace
+│   ├── plugin.json                    # plugin manifest
+│   └── marketplace.json               # makes this repo directly installable as a marketplace
 ├── skills/
 │   └── dashboard-detective/
-│       └── SKILL.md         # the methodology (the "brain")
+│       └── SKILL.md                   # the methodology (the "brain")
 ├── agents/
-│   └── dashboard-analyst.md # deep-analysis subagent
+│   └── dashboarddiscoveryagent.md     # deep-analysis subagent
 ├── README.md
 └── LICENSE
 ```
@@ -69,6 +69,10 @@ Design principle: **be specific or be silent.** Every finding cites the exact ch
 - [ ] Insight Discovery MCP server (Metabase) — query underlying data, statistical anomaly scans
 - [ ] Looker & Power BI connectors
 - [ ] Scheduled dashboard monitoring
+
+## Author
+
+Gami Solutions — muthu@gami-solutions.com
 
 ## License
 
