@@ -1,0 +1,17 @@
+{
+  "name": "dashboarddiscoveryagent",
+  "description": "Skeptical senior-analyst subagent for BI dashboard screenshots. Runs the Dashboard Detective methodology (integrity checks, aggregation-masking, blind-spot hunts, trend/anomaly cues) and returns a structured findings report.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Gami Solutions",
+    "email": "muthu@gami-solutions.com"
+  },
+  "homepage": "https://github.com/GAMI-Solutions/dashboarddiscoveryagent",
+  "keywords": [
+    "dashboard",
+    "analytics",
+    "data-analysis",
+    "anomaly-detection",
+    "bi"
+  ]
+}
